@@ -1,10 +1,15 @@
 using Comandas.Blazor.FrontEnd.Components;
+using Comandas.Blazor.FrontEnd.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Adicionar serviços personalizados
+builder.Services.AddScoped<AutenticacaoService>();
+builder.Services.AddSingleton<UsuarioService>();
 
 var app = builder.Build();
 
