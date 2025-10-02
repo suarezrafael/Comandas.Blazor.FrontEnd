@@ -14,9 +14,13 @@ The application implements a simple token-based authentication system with two l
 - On success:
   - Token stored in memory via `AuthService`
   - User info stored in `AuthService.CurrentUser`
-  - Redirects to `/menu`
+  - Redirects to `/menu` (without forceLoad to preserve circuit state)
 - On failure:
   - Error message displayed
+
+**Important**: The navigation to `/menu` after successful login uses `NavigateTo("/menu")` without the `forceLoad` parameter. This is critical because:
+- `forceLoad=false` (default): Performs client-side navigation, preserving the Blazor Server circuit and scoped services
+- `forceLoad=true`: Forces a full page reload, creating a new circuit and losing the authentication state stored in the scoped `AuthService`
 
 ### 2. Token Storage
 The `AuthService` class stores authentication state in memory:
@@ -58,7 +62,7 @@ Protected pages include:
 Users can logout from the Menu page:
 - Click "Sair" button
 - Calls `AuthService.Logout()` which clears token and user info
-- Redirects to login page (`/`)
+- Redirects to login page (`/`) with `forceLoad=true` to create a new circuit and ensure clean state
 
 ## Layout Structure
 
