@@ -84,9 +84,16 @@ h1:focus {
 }
 
 /* Custom Restaurant Styles */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .login-container {
     max-width: 400px;
-    margin: 100px auto;
+    width: 100%;
     padding: 30px;
     background: white;
     border-radius: 10px;
