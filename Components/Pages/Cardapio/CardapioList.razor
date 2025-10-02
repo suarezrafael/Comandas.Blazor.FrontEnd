@@ -1,0 +1,108 @@
+@page "/cardapio"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Cardápio</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">📋 Cardápio</h1>
+        <div>
+            <button class="btn btn-success" @onclick="NavigateToCreate">➕ Novo Item</button>
+            <a href="/menu" class="btn btn-secondary ms-2">🏠 Menu</a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    }
+    else if (items == null || !items.Any())
+    {
+        <div class="alert alert-info">
+            Nenhum item cadastrado no cardápio.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-restaurant table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Descrição</th>
+                        <th>Preço</th>
+                        <th>Possui Preparo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>@item.Titulo</td>
+                            <td>@item.Descricao</td>
+                            <td>R$ @item.Preco.ToString("F2")</td>
+                            <td>@(item.PossuiPreparo ? "Sim" : "Não")</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary me-1" @onclick="() => NavigateToEdit(item.Id)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteItem(item.Id)">🗑️ Excluir</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<CardapioItem>? items;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        isLoading = true;
+        items = await ApiService.GetAsync<List<CardapioItem>>("api/CardapioItems");
+        isLoading = false;
+    }
+
+    private void NavigateToCreate()
+    {
+        Navigation.NavigateTo("/cardapio/novo");
+    }
+
+    private void NavigateToEdit(int id)
+    {
+        Navigation.NavigateTo($"/cardapio/editar/{id}");
+    }
+
+    private async Task DeleteItem(int id)
+    {
+        if (await ApiService.DeleteAsync($"api/CardapioItems/{id}"))
+        {
+            await LoadItems();
+        }
+    }
+}

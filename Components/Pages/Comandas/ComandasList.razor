@@ -1,0 +1,124 @@
+@page "/comandas"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Comandas</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">📝 Comandas</h1>
+        <div>
+            <button class="btn btn-success" @onclick="NavigateToCreate">➕ Nova Comanda</button>
+            <a href="/menu" class="btn btn-secondary ms-2">🏠 Menu</a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    }
+    else if (comandas == null || !comandas.Any())
+    {
+        <div class="alert alert-info">
+            Nenhuma comanda cadastrada.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-restaurant table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Mesa</th>
+                        <th>Cliente</th>
+                        <th>Itens</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var comanda in comandas)
+                    {
+                        <tr>
+                            <td>@comanda.Id</td>
+                            <td>Mesa @comanda.NumeroMesa</td>
+                            <td>@comanda.NomeCliente</td>
+                            <td>
+                                @if (comanda.ComandaItens != null && comanda.ComandaItens.Any())
+                                {
+                                    <small>@string.Join(", ", comanda.ComandaItens.Select(i => i.Titulo))</small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">Nenhum item</small>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary me-1" @onclick="() => NavigateToEdit(comanda.Id)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-warning me-1" @onclick="() => CloseComanda(comanda.Id)">🔒 Fechar</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteComanda(comanda.Id)">🗑️ Excluir</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ComandaGetDto>? comandas;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        await LoadComandas();
+    }
+
+    private async Task LoadComandas()
+    {
+        isLoading = true;
+        comandas = await ApiService.GetAsync<List<ComandaGetDto>>("api/Comandas");
+        isLoading = false;
+    }
+
+    private void NavigateToCreate()
+    {
+        Navigation.NavigateTo("/comandas/novo");
+    }
+
+    private void NavigateToEdit(int id)
+    {
+        Navigation.NavigateTo($"/comandas/editar/{id}");
+    }
+
+    private async Task CloseComanda(int id)
+    {
+        if (await ApiService.PatchAsync($"api/Comandas/{id}"))
+        {
+            await LoadComandas();
+        }
+    }
+
+    private async Task DeleteComanda(int id)
+    {
+        if (await ApiService.DeleteAsync($"api/Comandas/{id}"))
+        {
+            await LoadComandas();
+        }
+    }
+}

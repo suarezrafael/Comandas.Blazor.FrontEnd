@@ -1,0 +1,133 @@
+@page "/cardapio/novo"
+@page "/cardapio/editar/{Id:int}"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id.HasValue ? "Editar Item" : "Novo Item")</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">@(Id.HasValue ? "✏️ Editar Item" : "➕ Novo Item")</h1>
+        <a href="/cardapio" class="btn btn-secondary">← Voltar</a>
+    </div>
+
+    <div class="card card-restaurant">
+        <div class="card-body">
+            <EditForm Model="@item" OnValidSubmit="HandleSubmit">
+                <div class="mb-3">
+                    <label for="titulo" class="form-label">Título</label>
+                    <InputText id="titulo" class="form-control" @bind-Value="item.Titulo" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="descricao" class="form-label">Descrição</label>
+                    <InputTextArea id="descricao" class="form-control" @bind-Value="item.Descricao" rows="3" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="preco" class="form-label">Preço (R$)</label>
+                    <InputNumber id="preco" class="form-control" @bind-Value="item.Preco" />
+                </div>
+
+                <div class="mb-3 form-check">
+                    <InputCheckbox id="possuiPreparo" class="form-check-input" @bind-Value="item.PossuiPreparo" />
+                    <label class="form-check-label" for="possuiPreparo">
+                        Possui Preparo
+                    </label>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Salvando...</span>
+                    }
+                    else
+                    {
+                        <span>💾 Salvar</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CardapioItem item = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        if (Id.HasValue)
+        {
+            var existingItem = await ApiService.GetAsync<CardapioItem>($"api/CardapioItems/{Id.Value}");
+            if (existingItem != null)
+            {
+                item = existingItem;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (Id.HasValue)
+            {
+                var success = await ApiService.PutAsync($"api/CardapioItems/{Id.Value}", item);
+                if (success)
+                {
+                    Navigation.NavigateTo("/cardapio");
+                }
+                else
+                {
+                    errorMessage = "Erro ao atualizar item.";
+                }
+            }
+            else
+            {
+                var result = await ApiService.PostAsync<CardapioItem>("api/CardapioItems", item);
+                if (result != null)
+                {
+                    Navigation.NavigateTo("/cardapio");
+                }
+                else
+                {
+                    errorMessage = "Erro ao criar item.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

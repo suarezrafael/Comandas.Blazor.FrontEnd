@@ -1,0 +1,130 @@
+@page "/usuarios/novo"
+@page "/usuarios/editar/{Id:int}"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id.HasValue ? "Editar Usuário" : "Novo Usuário")</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">@(Id.HasValue ? "✏️ Editar Usuário" : "➕ Novo Usuário")</h1>
+        <a href="/usuarios" class="btn btn-secondary">← Voltar</a>
+    </div>
+
+    <div class="card card-restaurant">
+        <div class="card-body">
+            <EditForm Model="@usuario" OnValidSubmit="HandleSubmit">
+                <div class="mb-3">
+                    <label for="nome" class="form-label">Nome</label>
+                    <InputText id="nome" class="form-control" @bind-Value="usuario.Nome" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <InputText id="email" type="email" class="form-control" @bind-Value="usuario.Email" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="senha" class="form-label">Senha</label>
+                    <InputText id="senha" type="password" class="form-control" @bind-Value="usuario.Senha" />
+                    @if (Id.HasValue)
+                    {
+                        <small class="text-muted">Deixe em branco para não alterar a senha</small>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Salvando...</span>
+                    }
+                    else
+                    {
+                        <span>💾 Salvar</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private Usuario usuario = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        if (Id.HasValue)
+        {
+            var existingUsuario = await ApiService.GetAsync<Usuario>($"api/Usuarios/{Id.Value}");
+            if (existingUsuario != null)
+            {
+                usuario = existingUsuario;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (Id.HasValue)
+            {
+                var success = await ApiService.PutAsync($"api/Usuarios/{Id.Value}", usuario);
+                if (success)
+                {
+                    Navigation.NavigateTo("/usuarios");
+                }
+                else
+                {
+                    errorMessage = "Erro ao atualizar usuário.";
+                }
+            }
+            else
+            {
+                var result = await ApiService.PostAsync<Usuario>("api/Usuarios", usuario);
+                if (result != null)
+                {
+                    Navigation.NavigateTo("/usuarios");
+                }
+                else
+                {
+                    errorMessage = "Erro ao criar usuário.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

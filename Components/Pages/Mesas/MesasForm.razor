@@ -1,0 +1,124 @@
+@page "/mesas/novo"
+@page "/mesas/editar/{Id:int}"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id.HasValue ? "Editar Mesa" : "Nova Mesa")</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">@(Id.HasValue ? "✏️ Editar Mesa" : "➕ Nova Mesa")</h1>
+        <a href="/mesas" class="btn btn-secondary">← Voltar</a>
+    </div>
+
+    <div class="card card-restaurant">
+        <div class="card-body">
+            <EditForm Model="@mesa" OnValidSubmit="HandleSubmit">
+                <div class="mb-3">
+                    <label for="numeroMesa" class="form-label">Número da Mesa</label>
+                    <InputNumber id="numeroMesa" class="form-control" @bind-Value="mesa.NumeroMesa" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="situacaoMesa" class="form-label">Situação</label>
+                    <InputSelect id="situacaoMesa" class="form-select" @bind-Value="mesa.SituacaoMesa">
+                        <option value="0">Livre</option>
+                        <option value="1">Ocupada</option>
+                    </InputSelect>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Salvando...</span>
+                    }
+                    else
+                    {
+                        <span>💾 Salvar</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private Mesa mesa = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        if (Id.HasValue)
+        {
+            var existingMesa = await ApiService.GetAsync<Mesa>($"api/Mesas/{Id.Value}");
+            if (existingMesa != null)
+            {
+                mesa = existingMesa;
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (Id.HasValue)
+            {
+                var success = await ApiService.PutAsync($"api/Mesas/{Id.Value}", mesa);
+                if (success)
+                {
+                    Navigation.NavigateTo("/mesas");
+                }
+                else
+                {
+                    errorMessage = "Erro ao atualizar mesa.";
+                }
+            }
+            else
+            {
+                var result = await ApiService.PostAsync<Mesa>("api/Mesas", mesa);
+                if (result != null)
+                {
+                    Navigation.NavigateTo("/mesas");
+                }
+                else
+                {
+                    errorMessage = "Erro ao criar mesa.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

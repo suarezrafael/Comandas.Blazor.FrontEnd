@@ -1,0 +1,80 @@
+@page "/"
+@using ComandasBlazor.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<div class="login-container">
+    <h1 class="login-header">🍽️ Sistema de Comandas</h1>
+    
+    <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <InputText id="email" class="form-control" @bind-Value="loginModel.Email" />
+        </div>
+        
+        <div class="mb-3">
+            <label for="senha" class="form-label">Senha</label>
+            <InputText id="senha" type="password" class="form-control" @bind-Value="loginModel.Senha" />
+        </div>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                @errorMessage
+            </div>
+        }
+        
+        <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Entrando...</span>
+            }
+            else
+            {
+                <span>Entrar</span>
+            }
+        </button>
+    </EditForm>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        
+        try
+        {
+            var success = await AuthService.LoginAsync(loginModel.Email ?? "", loginModel.Senha ?? "");
+            
+            if (success)
+            {
+                Navigation.NavigateTo("/menu", true);
+            }
+            else
+            {
+                errorMessage = "Email ou senha inválidos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao conectar com a API: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        public string? Email { get; set; }
+        public string? Senha { get; set; }
+    }
+}

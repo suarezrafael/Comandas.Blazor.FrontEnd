@@ -1,0 +1,104 @@
+@page "/usuarios"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Usuários</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">👥 Usuários</h1>
+        <div>
+            <button class="btn btn-success" @onclick="NavigateToCreate">➕ Novo Usuário</button>
+            <a href="/menu" class="btn btn-secondary ms-2">🏠 Menu</a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    }
+    else if (usuarios == null || !usuarios.Any())
+    {
+        <div class="alert alert-info">
+            Nenhum usuário cadastrado.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-restaurant table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var usuario in usuarios)
+                    {
+                        <tr>
+                            <td>@usuario.Id</td>
+                            <td>@usuario.Nome</td>
+                            <td>@usuario.Email</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary me-1" @onclick="() => NavigateToEdit(usuario.Id)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteUsuario(usuario.Id)">🗑️ Excluir</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Usuario>? usuarios;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        await LoadUsuarios();
+    }
+
+    private async Task LoadUsuarios()
+    {
+        isLoading = true;
+        usuarios = await ApiService.GetAsync<List<Usuario>>("api/Usuarios");
+        isLoading = false;
+    }
+
+    private void NavigateToCreate()
+    {
+        Navigation.NavigateTo("/usuarios/novo");
+    }
+
+    private void NavigateToEdit(int id)
+    {
+        Navigation.NavigateTo($"/usuarios/editar/{id}");
+    }
+
+    private async Task DeleteUsuario(int id)
+    {
+        if (await ApiService.DeleteAsync($"api/Usuarios/{id}"))
+        {
+            await LoadUsuarios();
+        }
+    }
+}

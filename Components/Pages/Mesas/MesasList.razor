@@ -1,0 +1,128 @@
+@page "/mesas"
+@using ComandasBlazor.Models
+@using ComandasBlazor.Services
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Mesas</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-header">🪑 Mesas</h1>
+        <div>
+            <button class="btn btn-success" @onclick="NavigateToCreate">➕ Nova Mesa</button>
+            <a href="/menu" class="btn btn-secondary ms-2">🏠 Menu</a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    }
+    else if (mesas == null || !mesas.Any())
+    {
+        <div class="alert alert-info">
+            Nenhuma mesa cadastrada.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-restaurant table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Número da Mesa</th>
+                        <th>Situação</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var mesa in mesas)
+                    {
+                        <tr>
+                            <td>@mesa.Id</td>
+                            <td>@mesa.NumeroMesa</td>
+                            <td>
+                                <span class="badge @GetSituacaoClass(mesa.SituacaoMesa)">
+                                    @GetSituacaoText(mesa.SituacaoMesa)
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary me-1" @onclick="() => NavigateToEdit(mesa.Id)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteMesa(mesa.Id)">🗑️ Excluir</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Mesa>? mesas;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+            return;
+        }
+
+        await LoadMesas();
+    }
+
+    private async Task LoadMesas()
+    {
+        isLoading = true;
+        mesas = await ApiService.GetAsync<List<Mesa>>("api/Mesas");
+        isLoading = false;
+    }
+
+    private void NavigateToCreate()
+    {
+        Navigation.NavigateTo("/mesas/novo");
+    }
+
+    private void NavigateToEdit(int id)
+    {
+        Navigation.NavigateTo($"/mesas/editar/{id}");
+    }
+
+    private async Task DeleteMesa(int id)
+    {
+        if (await ApiService.DeleteAsync($"api/Mesas/{id}"))
+        {
+            await LoadMesas();
+        }
+    }
+
+    private string GetSituacaoClass(int situacao)
+    {
+        return situacao switch
+        {
+            0 => "bg-success",
+            1 => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetSituacaoText(int situacao)
+    {
+        return situacao switch
+        {
+            0 => "Livre",
+            1 => "Ocupada",
+            _ => "Desconhecido"
+        };
+    }
+}
