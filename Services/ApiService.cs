@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
@@ -7,32 +6,21 @@ namespace ComandasBlazor.Services;
 public class ApiService
 {
     private readonly HttpClient _httpClient;
-    private readonly AuthService _authService;
+    private static readonly JsonSerializerOptions _json = new() { PropertyNameCaseInsensitive = true };
 
-    public ApiService(HttpClient httpClient, AuthService authService)
+    public ApiService(HttpClient httpClient)
     {
-        _httpClient = httpClient;
-        _authService = authService;
-    }
-
-    private void SetAuthHeader()
-    {
-        if (!string.IsNullOrEmpty(_authService.Token))
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", _authService.Token);
-        }
+        _httpClient = httpClient; // já vem com BaseAddress e TokenMessageHandler
     }
 
     public async Task<T?> GetAsync<T>(string endpoint)
     {
         try
         {
-            SetAuthHeader();
             var response = await _httpClient.GetAsync(endpoint);
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return JsonSerializer.Deserialize<T>(content, _json);
         }
         catch
         {
@@ -44,13 +32,12 @@ public class ApiService
     {
         try
         {
-            SetAuthHeader();
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(endpoint, content);
             response.EnsureSuccessStatusCode();
             var responseContent = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return JsonSerializer.Deserialize<T>(responseContent, _json);
         }
         catch
         {
@@ -62,7 +49,6 @@ public class ApiService
     {
         try
         {
-            SetAuthHeader();
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PutAsync(endpoint, content);
@@ -78,7 +64,6 @@ public class ApiService
     {
         try
         {
-            SetAuthHeader();
             var response = await _httpClient.DeleteAsync(endpoint);
             return response.IsSuccessStatusCode;
         }
@@ -92,7 +77,6 @@ public class ApiService
     {
         try
         {
-            SetAuthHeader();
             var response = await _httpClient.PatchAsync(endpoint, null);
             return response.IsSuccessStatusCode;
         }
