@@ -72,11 +72,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!AuthService.IsAuthenticated)
-        {
-            Navigation.NavigateTo("/", true);
-            return;
-        }
+        // if (!AuthService.IsAuthenticated)
+        // {
+        //     Navigation.NavigateTo("/", true);
+        //     return;
+        // }
 
         await LoadMesas();
     }

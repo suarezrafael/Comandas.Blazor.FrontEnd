@@ -65,16 +65,25 @@
 @code {
     private List<Usuario>? usuarios;
     private bool isLoading = true;
+    private bool _ready = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!AuthService.IsAuthenticated)
+        if (firstRender)
         {
-            Navigation.NavigateTo("/", true);
-            return;
-        }
+            await AuthService.EnsureInitializedAsync();
 
-        await LoadUsuarios();
+            if (!AuthService.IsAuthenticated)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            await LoadUsuarios();
+
+            _ready = true;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadUsuarios()

@@ -79,17 +79,31 @@
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private bool _ready = false;
+
+    // 🔸 Carrega token DEPOIS do primeiro render interativo
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!AuthService.IsAuthenticated)
+        if (firstRender)
         {
-            Navigation.NavigateTo("/", true);
+            await AuthService.EnsureInitializedAsync();
+
+            if (!AuthService.IsAuthenticated)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            _ready = true;
+            StateHasChanged(); // força re-render após inicialização
         }
     }
 
-    private void Logout()
+    private async Task Logout()
     {
-        AuthService.Logout();
-        Navigation.NavigateTo("/", true);
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/");
     }
 }
+
+

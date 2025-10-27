@@ -7,25 +7,25 @@
 
 <div class="login-container">
     <h1 class="login-header">🍽️ Sistema de Comandas</h1>
-    
+
     <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
         <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <InputText id="email" class="form-control" @bind-Value="loginModel.Email" />
         </div>
-        
+
         <div class="mb-3">
             <label for="senha" class="form-label">Senha</label>
             <InputText id="senha" type="password" class="form-control" @bind-Value="loginModel.Senha" />
         </div>
-        
+
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert alert-danger" role="alert">
                 @errorMessage
             </div>
         }
-        
+
         <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
             @if (isLoading)
             {
@@ -45,18 +45,28 @@
     private string errorMessage = string.Empty;
     private bool isLoading = false;
 
+    // 🔸 MOVER a reidratação para OnAfterRenderAsync
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.EnsureInitializedAsync();
+            if (AuthService.IsAuthenticated)
+                Navigation.NavigateTo("/menu");
+        }
+    }
+
     private async Task HandleLogin()
     {
         isLoading = true;
         errorMessage = string.Empty;
-        
+
         try
         {
             var success = await AuthService.LoginAsync(loginModel.Email ?? "", loginModel.Senha ?? "");
-            
             if (success)
             {
-                Navigation.NavigateTo("/menu", true);
+                Navigation.NavigateTo("/menu"); // sem forceLoad
             }
             else
             {
